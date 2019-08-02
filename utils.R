@@ -23,3 +23,45 @@ widen <- function(df, keepCols, newCols, newColsVal) {
   attr(out,'reshapeWide') <- NULL
   return(out)
 }
+
+
+# baseSummarize generic method. Groups and aggregates with split and vapply
+baseSummarize <- function(x, ...) {
+  
+  groupAndSummarize <- function(fCols,out,vCol, acb, type, colName) {
+    keys <- as.integer(do.call('interaction',fCols))
+    out$keys <- as.character(keys)
+    out <- unique(out)
+    splitDf <- split(vCol, keys)
+    nv <- vapply(splitDf, acb,type)
+    out[colName] <- nv[out$keys]
+    out$keys <- rownames(out) <- NULL
+    return(out)
+  }
+  
+  UseMethod('baseSummarize',x)
+}
+
+# baseSummarize data frame method for df argument and quoted columns
+baseSummarize.data.frame <- function(df,vCol, ..., acb = sum, colName = 'sum', type = double(1)) {
+  fCols <- as.list(substitute(...()))
+  fColNames <- vapply(fCols,deparse,character(1))
+  vCol <- eval(substitute(vCol),df)
+  fCols <- lapply(fCols, eval, df)
+  out <- df[,fColNames,drop=F]
+  out <- groupAndSummarize(fCols,out,vCol, acb, type, colName)
+  return(out)
+}
+
+#baseSummarize default method for vector columns
+baseSummarize.default <- function(vCol, ..., acb = sum, colName = 'sum', fColNames = NULL, type = double(1)) {
+  fCols <- list(...)
+  if(is.null(fColNames))  fColNames <- paste0('Var', seq_along(fCols))
+  out <- do.call('data.frame', c(fCols, stringsAsFactors = F))
+  if(!is.null(fColNames)) names(out) <- fColNames
+  out <- groupAndSummarize(fCols,out,vCol, acb, type, colName)
+  return(out)
+}
+
+
+
