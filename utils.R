@@ -63,5 +63,16 @@ baseSummarize.default <- function(vCol, ..., acb = sum, colName = 'sum', fColNam
   return(out)
 }
 
+# Prepend an expression within the body of another function
+prependExpr <- function(func, ppExpr) {
+  bodyVector <- deparse(body(func))
+  ppExpr <- deparse(substitute(ppExpr))
+  bodyVector <- c('{{', ppExpr,'}',bodyVector,'}')
+  newBody <- parse(text= bodyVector)[[1]]
+  body(func) <- newBody
+  return(func)
+}
+
+
 
 
